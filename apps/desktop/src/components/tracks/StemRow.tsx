@@ -156,7 +156,7 @@ export default memo(function StemRow({
       style={widthPercent !== undefined && widthPercent < 100 ? { width: `${widthPercent}%` } : undefined}
     >
       <div className="flex-1 h-full overflow-hidden bg-[#0A0412] relative">
-        <Waveform seed={name + type} height={compact ? 48 : 95} fileId={fileId} projectId={projectId} trackId={trackId} />
+        <Waveform seed={name + type} height={compact ? 48 : 95} fileId={fileId} projectId={projectId} trackId={trackId} showPlayhead={true} />
         <div className="absolute inset-y-0 left-0 w-[45%] pointer-events-none" style={{ background: 'linear-gradient(90deg, rgba(10,4,18,0.85) 0%, rgba(10,4,18,0.4) 60%, transparent 100%)' }} />
         <div className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center ${compact ? 'gap-1' : 'gap-1.5'}`}>
           <motion.button

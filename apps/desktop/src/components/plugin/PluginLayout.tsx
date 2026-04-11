@@ -653,20 +653,20 @@ export default function PluginLayout() {
                 </div>
 
                 {/* Right panel */}
-                <div className={`relative flex flex-col min-h-0 h-full gap-1 ${chatCollapsed ? 'w-4 shrink-0' : 'overflow-hidden'}`}>
-                  <button onClick={() => setChatCollapsed(!chatCollapsed)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors" title={chatCollapsed ? 'Show chat' : 'Hide chat'}>
+                <div className={`relative flex flex-col min-h-0 h-full gap-1 shrink-0 ${chatCollapsed ? 'w-0 overflow-hidden' : 'w-[280px] overflow-hidden'}`}>
+                  <button onClick={() => setChatCollapsed(!chatCollapsed)} className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors" title={chatCollapsed ? 'Show chat' : 'Hide chat'}>
                     <svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ghost-text-muted">{chatCollapsed ? <polyline points="2,1 6,6 2,11" /> : <polyline points="6,1 2,6 6,11" />}</svg>
                   </button>
                   {!chatCollapsed && (
                     <>
-                    <div className="w-[300px] shrink-0 flex items-center justify-evenly glass glass-glow rounded-2xl h-[50px]">
+                    <div className="w-full shrink-0 flex items-center justify-evenly glass glass-glow rounded-2xl h-[50px]">
                       <button onClick={() => setVideoGridHidden(!videoGridHidden)} className={`transition-colors ${!videoGridHidden ? 'text-ghost-green' : 'text-white/40 hover:text-ghost-green'}`} title={videoGridHidden ? 'Show Video Grid' : 'Hide Video Grid'}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg></button>
                       <button onClick={() => { setShowNotifs(!showNotifs); setShowSettings(false); if (!showNotifs && notifs.notifications.length > 0) notifs.markAllRead(); }} className="text-white/40 hover:text-ghost-green transition-colors"><BellIcon count={notifs.totalCount} /></button>
                       <button className="text-white/40 hover:text-ghost-green transition-colors" title="Inbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" /></svg></button>
                       <button onClick={() => { setShowSettings(!showSettings); setShowNotifs(false); }} className="shrink-0 rounded-full outline-none focus:outline-none"><Avatar name={user?.displayName || '?'} src={user?.avatarUrl} size="sm" /></button>
                     </div>
-                    {!videoGridHidden && <div className="w-[300px] shrink-0"><VideoGrid members={members} userId={user?.id} onAddFriend={() => { setShowFriendSearch(true); setFriendSearchQuery(''); setTimeout(() => { friendSearchInputRef.current?.focus(); }, 100); }} /></div>}
-                    <div className="w-[300px] flex flex-col min-h-0 flex-1 overflow-hidden glass glass-glow rounded-2xl"><ChatPanel /></div>
+                    {!videoGridHidden && <div className="w-full shrink-0"><VideoGrid members={members} userId={user?.id} onAddFriend={() => { setShowFriendSearch(true); setFriendSearchQuery(''); setTimeout(() => { friendSearchInputRef.current?.focus(); }, 100); }} /></div>}
+                    <div className="w-full flex flex-col min-h-0 flex-1 overflow-hidden glass glass-glow rounded-2xl"><ChatPanel /></div>
                     </>
                   )}
                 </div>
@@ -674,14 +674,14 @@ export default function PluginLayout() {
             ) : samplePackState.selectedPackId && samplePackState.selectedPack ? (
               <>
                 <SamplePackContentView pack={samplePackState.selectedPack} onRenamePack={handleRenamePack} onDeletePack={handleDeletePack} onRemoveSample={handleRemoveSampleFromPack} onRefresh={samplePackState.fetchDetail} members={members} onInvite={() => setShowInvite(true)} />
-                <div className={`relative flex flex-col min-h-0 h-full gap-2 ${chatCollapsed ? 'w-4 shrink-0' : 'overflow-hidden'}`}>
-                  <button onClick={() => setChatCollapsed(!chatCollapsed)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors" title={chatCollapsed ? 'Show chat' : 'Hide chat'}>
+                <div className={`relative flex flex-col min-h-0 h-full gap-2 shrink-0 ${chatCollapsed ? 'w-0 overflow-hidden' : 'w-[280px] overflow-hidden'}`}>
+                  <button onClick={() => setChatCollapsed(!chatCollapsed)} className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors" title={chatCollapsed ? 'Show chat' : 'Hide chat'}>
                     <svg width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ghost-text-muted">{chatCollapsed ? <polyline points="2,1 6,6 2,11" /> : <polyline points="6,1 2,6 6,11" />}</svg>
                   </button>
                   {!chatCollapsed && (
                     <>
-                    <div className="w-[300px] shrink-0"><VideoGrid members={members} userId={user?.id} onAddFriend={() => { setShowFriendSearch(true); setFriendSearchQuery(''); setTimeout(() => { friendSearchInputRef.current?.focus(); }, 100); }} /></div>
-                    <div className="w-[300px] flex flex-col min-h-0 flex-1 overflow-hidden glass glass-glow rounded-2xl"><ChatPanel /></div>
+                    <div className="w-full shrink-0"><VideoGrid members={members} userId={user?.id} onAddFriend={() => { setShowFriendSearch(true); setFriendSearchQuery(''); setTimeout(() => { friendSearchInputRef.current?.focus(); }, 100); }} /></div>
+                    <div className="w-full flex flex-col min-h-0 flex-1 overflow-hidden glass glass-glow rounded-2xl"><ChatPanel /></div>
                     </>
                   )}
                 </div>

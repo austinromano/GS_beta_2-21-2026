@@ -20,52 +20,120 @@ void DragStrip::clear()
 int DragStrip::getTrackAt(int x) const
 {
     if (tracks.isEmpty()) return -1;
-    int itemW = getWidth() / tracks.size();
-    if (itemW < 1) itemW = 1;
-    int idx = x / itemW;
-    return juce::jlimit(0, tracks.size() - 1, idx);
+    int startX = 55;
+    int endX = getWidth() - 60;
+    int availW = endX - startX;
+    int itemW = juce::jmin(200, availW / juce::jmax(1, tracks.size()));
+    if (x < startX || x > endX) return -1;
+    int idx = (x - startX) / juce::jmax(1, itemW);
+    return (idx >= 0 && idx < tracks.size()) ? idx : -1;
 }
 
 void DragStrip::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF0A0412));
+    // Dark gradient background
+    g.setGradientFill(juce::ColourGradient(
+        juce::Colour(0xFF0D0818), 0, 0,
+        juce::Colour(0xFF0A0412), 0, (float)getHeight(), false));
+    g.fillRect(getLocalBounds());
+
+    // Top border line
+    g.setColour(juce::Colour(0xFF7C3AED).withAlpha(0.3f));
+    g.fillRect(0, 0, getWidth(), 1);
 
     if (tracks.isEmpty())
     {
         g.setColour(juce::Colour(0xFF6D6F78));
         g.setFont(juce::Font(11.0f));
-        g.drawText("Click export to load tracks here for drag-to-DAW",
+        g.drawText("Click Download Stems to load tracks here",
                    getLocalBounds(), juce::Justification::centred);
         return;
     }
 
-    int itemW = getWidth() / tracks.size();
+    // "STEMS" label on far left
+    g.setColour(juce::Colour(0xFF00FFC8).withAlpha(0.6f));
+    g.setFont(juce::Font(9.0f, juce::Font::bold));
+    g.drawText("STEMS", 8, 0, 45, getHeight(), juce::Justification::centredLeft);
+
+    // "Clear All" on far right
+    g.setColour(juce::Colour(0xFFFF4466).withAlpha(0.5f));
+    g.setFont(juce::Font(9.0f));
+    g.drawText("Clear All", getWidth() - 55, 0, 50, getHeight(), juce::Justification::centredRight);
+
+    int startX = 55;
+    int endX = getWidth() - 60;
+    int availW = endX - startX;
+    int itemW = juce::jmin(200, availW / juce::jmax(1, tracks.size()));
+
     for (int i = 0; i < tracks.size(); ++i)
     {
-        auto bounds = juce::Rectangle<int>(i * itemW, 0, itemW, getHeight()).reduced(2);
+        auto bounds = juce::Rectangle<int>(startX + i * itemW, 3, itemW, getHeight() - 6).reduced(3, 0);
 
-        // Background
-        g.setColour(juce::Colour(0xFF1a1a24));
-        g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
-        g.setColour(juce::Colour(0xFF7C3AED).withAlpha(0.3f));
-        g.drawRoundedRectangle(bounds.toFloat(), 4.0f, 1.0f);
+        // Item background with gradient
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colour(0xFF1a1a2e), bounds.getX(), bounds.getY(),
+            juce::Colour(0xFF141424), bounds.getX(), bounds.getBottom(), false));
+        g.fillRoundedRectangle(bounds.toFloat(), 6.0f);
 
-        // Track name
-        g.setColour(juce::Colours::white.withAlpha(0.8f));
+        // Border — green glow
+        g.setColour(juce::Colour(0xFF00FFC8).withAlpha(0.25f));
+        g.drawRoundedRectangle(bounds.toFloat(), 6.0f, 1.0f);
+
+        // X delete button (right side)
+        auto closeArea = bounds.removeFromRight(24);
+        g.setColour(juce::Colour(0xFFFF4466).withAlpha(0.6f));
+        g.setFont(juce::Font(14.0f, juce::Font::bold));
+        g.drawText(juce::CharPointer_UTF8("\xc3\x97"), closeArea, juce::Justification::centred); // ×
+
+        // Drag grip icon (left side)
+        auto gripArea = bounds.removeFromLeft(20);
+        g.setColour(juce::Colour(0xFF00FFC8).withAlpha(0.4f));
+        int dotY = gripArea.getCentreY();
+        int dotX = gripArea.getCentreX();
+        for (int r = -1; r <= 1; ++r)
+            for (int c = -1; c <= 0; ++c)
+                g.fillEllipse((float)(dotX + c * 5 - 1), (float)(dotY + r * 5 - 1), 3.0f, 3.0f);
+
+        // Track name — truncate with ellipsis
+        auto nameStr = tracks[i].name;
+        if (nameStr.endsWith(".wav")) nameStr = nameStr.dropLastCharacters(4);
+        g.setColour(juce::Colours::white.withAlpha(0.85f));
         g.setFont(juce::Font(10.0f, juce::Font::bold));
-        g.drawText(tracks[i].name, bounds.reduced(4, 0), juce::Justification::centredLeft);
-
-        // Drag icon
-        auto iconArea = bounds.removeFromRight(20);
-        g.setColour(juce::Colour(0xFF00FFC8).withAlpha(0.6f));
-        g.setFont(juce::Font(9.0f));
-        g.drawText(juce::CharPointer_UTF8("\xe2\x87\xa7"), iconArea, juce::Justification::centred); // ⇧
+        g.drawText(nameStr, bounds.reduced(4, 0), juce::Justification::centredLeft, true);
     }
 }
 
 void DragStrip::mouseDown(const juce::MouseEvent& e)
 {
-    dragIndex = getTrackAt(e.x);
+    // "Clear All" click — far right
+    if (e.x > getWidth() - 60)
+    {
+        tracks.clear();
+        repaint();
+        if (auto* parent = getParentComponent())
+            parent->resized();
+        return;
+    }
+
+    int idx = getTrackAt(e.x);
+    if (idx < 0) return;
+
+    // Check if click is on the X (delete) area — rightmost 24px of the item
+    int startX = 55;
+    int endX = getWidth() - 60;
+    int availW = endX - startX;
+    int itemW = juce::jmin(200, availW / juce::jmax(1, tracks.size()));
+    int itemRight = startX + (idx + 1) * itemW - 3;
+    if (e.x > itemRight - 24)
+    {
+        tracks.remove(idx);
+        repaint();
+        if (auto* parent = getParentComponent())
+            parent->resized();
+        return;
+    }
+
+    dragIndex = idx;
 }
 
 void DragStrip::mouseDrag(const juce::MouseEvent& e)
@@ -360,7 +428,7 @@ void GhostSessionEditor::resized()
 
     if (dragStrip.hasItems())
     {
-        dragStrip.setBounds(area.removeFromBottom(36));
+        dragStrip.setBounds(area.removeFromBottom(44));
         dragStrip.setVisible(true);
     }
     else

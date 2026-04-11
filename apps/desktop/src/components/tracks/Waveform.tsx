@@ -186,18 +186,14 @@ export default memo(function Waveform({
   let showLine = false;
   if (showPlayhead) {
     if (trackId && soloPlayingTrackId === trackId && soloDuration > 0) {
+      // Solo playback — show position within this track
       playheadPct = (soloCurrentTime / soloDuration) * 100;
-      showLine = true;
+      showLine = playheadPct >= 0 && playheadPct <= 100;
     } else if (isPlaying && duration > 0) {
-      // Map project playhead into the trimmed region of this track's waveform
-      const trimmedDur = effectiveTrimEnd - trimStart;
-      if (trimmedDur > 0 && bufferDuration > 0) {
-        const trackTime = trimStart + (currentTime % trimmedDur);
-        playheadPct = (trackTime / bufferDuration) * 100;
-      } else {
-        playheadPct = (currentTime / duration) * 100;
-      }
-      showLine = true;
+      // Project playback
+      const dur = bufferDuration > 0 ? bufferDuration : duration;
+      playheadPct = (currentTime / dur) * 100;
+      showLine = playheadPct >= 0 && playheadPct <= 100;
     }
   }
 
@@ -214,7 +210,8 @@ export default memo(function Waveform({
       }} />
       {showLine && (
         <div
-          className="absolute top-0 bottom-0 w-[2px] bg-white pointer-events-none shadow-[0_0_6px_rgba(255,255,255,0.6)]"
+          className="absolute top-0 bottom-0 w-[2px] pointer-events-none"
+          style={{ background: '#00FFC8', boxShadow: '0 0 6px rgba(0,255,200,0.6), 0 0 12px rgba(0,255,200,0.2)' }}
           style={{ left: `${playheadPct}%` }}
         />
       )}

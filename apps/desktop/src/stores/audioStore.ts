@@ -173,8 +173,12 @@ export const useAudioStore = create<AudioState>((set, get) => {
     if (!ctx || !get().isPlaying) return;
     const elapsed = ctx.currentTime - startedAt;
     const dur = get().duration;
-    const wrapped = dur > 0 ? elapsed % dur : elapsed;
-    set({ currentTime: wrapped });
+    // Stop at the end instead of looping
+    if (dur > 0 && elapsed >= dur) {
+      get().stop();
+      return;
+    }
+    set({ currentTime: elapsed });
     rafId = requestAnimationFrame(updatePosition);
   }
 
@@ -232,17 +236,6 @@ export const useAudioStore = create<AudioState>((set, get) => {
 
     startedAt = ctx.currentTime - offset;
     updateSoloState();
-
-    // Schedule a synchronized loop restart when the longest track ends
-    const dur = get().duration;
-    if (dur > 0) {
-      const remaining = dur - (offset % dur);
-      loopTimer = setTimeout(() => {
-        if (get().isPlaying) {
-          startAllSources(0);
-        }
-      }, remaining * 1000);
-    }
   }
 
   function stopAllSources() {
@@ -350,12 +343,14 @@ export const useAudioStore = create<AudioState>((set, get) => {
       set((s) => {
         const m = new Map(s.loadedTracks);
         const existing = m.get(trackId);
+
         m.set(trackId, {
           id: trackId, buffer, source: null, gainNode: null,
           volume: existing?.volume ?? 1, muted: existing?.muted ?? false,
           soloed: existing?.soloed ?? false, bpm: trackBpm || existing?.bpm || 0,
           pitch: existing?.pitch ?? 0,
-          trimStart: existing?.trimStart ?? 0, trimEnd: existing?.trimEnd ?? 0,
+          trimStart: existing?.trimStart ?? 0,
+          trimEnd: existing?.trimEnd ?? 0,
           startOffset: existing?.startOffset ?? 0,
         });
         return { loadedTracks: m };

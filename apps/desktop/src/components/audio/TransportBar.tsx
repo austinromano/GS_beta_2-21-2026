@@ -41,6 +41,10 @@ export default function TransportBar({ tracks, projectId, projectTempo, onTempoC
           const detectedBpm = detectBpmFromName(trackName);
           const buffer = audioBufferCache.get(track.fileId)!;
           loadTrackFromBuffer(track.id, buffer, detectedBpm);
+          // Auto-set project tempo from first track with detected BPM
+          if (detectedBpm > 0 && onTempoChange && (!projectTempo || projectTempo === 120)) {
+            onTempoChange(detectedBpm);
+          }
         }
       }
     };
