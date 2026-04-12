@@ -173,9 +173,9 @@ export const useAudioStore = create<AudioState>((set, get) => {
     if (!ctx || !get().isPlaying) return;
     const elapsed = ctx.currentTime - startedAt;
     const dur = get().duration;
-    // Stop at the end instead of looping
+    // Auto-loop: restart from beginning when reaching the end
     if (dur > 0 && elapsed >= dur) {
-      get().stop();
+      startAllSources(0);
       return;
     }
     set({ currentTime: elapsed });

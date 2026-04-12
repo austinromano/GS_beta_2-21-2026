@@ -248,7 +248,7 @@ export default function PluginLayout() {
   const [showSocial, setShowSocial] = useState(false);
   const [showMarketplace, setShowMarketplace] = useState(false);
   const [chatCollapsed, setChatCollapsed] = useState(false);
-  const [videoGridHidden, setVideoGridHidden] = useState(false);
+  const [videoGridHidden, setVideoGridHidden] = useState(true);
   const [shareStatus, setShareStatus] = useState('');
   const [showAllBars, setShowAllBars] = useState(false);
   const vizModes = ['bars', 'wave', 'radial', 'ghost'] as const;
@@ -256,7 +256,7 @@ export default function PluginLayout() {
   const vizMode = vizModes[vizModeIdx];
   const [isBeatView, setIsBeatView] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [trackZoom, setTrackZoom] = useState<'full' | 'half'>('full');
+  const [trackZoom, setTrackZoom] = useState<'full' | 'half'>('half');
   const [headerSpeaking, setHeaderSpeaking] = useState(false);
   const [onlineActivity, setOnlineActivity] = useState<Map<string, OnlineUser>>(new Map());
   const [showNotifs, setShowNotifs] = useState(false);
@@ -314,7 +314,9 @@ export default function PluginLayout() {
     const pollTimer = setInterval(() => {
       fetchProject(selectedProjectId);
     }, 5000);
-    return () => clearInterval(pollTimer);
+    const handleRefresh = () => fetchProject(selectedProjectId);
+    window.addEventListener('ghost-refresh-project', handleRefresh);
+    return () => { clearInterval(pollTimer); window.removeEventListener('ghost-refresh-project', handleRefresh); };
   }, [selectedProjectId]);
 
   useEffect(() => {
@@ -324,7 +326,7 @@ export default function PluginLayout() {
       setProjectKey(currentProject.key || '');
       setProjectTimeSig(currentProject.timeSignature || '');
     }
-  }, [currentProject?.id, currentProject?.name]);
+  }, [currentProject?.id]);
 
   useEffect(() => {
     if (!friendSearchQuery.trim()) { setFriendSearchResults([]); return; }
@@ -423,70 +425,79 @@ export default function PluginLayout() {
   return (
     <div className="flex h-screen w-screen overflow-hidden relative">
       {/* Presence dock — full height left edge */}
-      <div className="flex flex-col items-center justify-start shrink-0 w-14 pl-2 pt-4 pb-2 z-20">
-        <motion.svg onClick={() => setVizModeIdx((i) => (i + 1) % vizModes.length)} width="38" height="40" viewBox="0 0 20 22" fill="none" className="shrink-0 cursor-pointer mb-5"style={{ filter: 'drop-shadow(0 0 4px rgba(0,255,200,0.3))' }} animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+      <div className="flex flex-col items-center justify-start shrink-0 w-[60px] pt-4 pb-2 z-20 gap-4">
+        {/* Ghost logo */}
+        <motion.svg onClick={() => setVizModeIdx((i) => (i + 1) % vizModes.length)} width="42" height="44" viewBox="0 0 20 22" fill="none" className="shrink-0 cursor-pointer" style={{ filter: 'drop-shadow(0 0 4px rgba(0,255,200,0.3))' }} animate={{ y: [0, -2, 0] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
           <defs><linearGradient id="ghostGradNav" x1="0" y1="0" x2="20" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0%" stopColor="#00FFC8" /><stop offset="100%" stopColor="#7C3AED" /></linearGradient></defs>
           <path d="M10 1C5.5 1 2 4.5 2 9v8l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2V9c0-4.5-3.5-8-8-8z" fill="rgba(0,255,200,0.08)" stroke="url(#ghostGradNav)" strokeWidth="1.5" strokeLinejoin="round" />
           <ellipse cx="7.5" cy="9.5" rx="1.6" ry="1.8" fill="url(#ghostGradNav)" opacity="0.9" /><ellipse cx="12.5" cy="9.5" rx="1.6" ry="1.8" fill="url(#ghostGradNav)" opacity="0.9" />
           <ellipse cx="7.5" cy="9.2" rx="0.6" ry="0.7" fill="#0A0412" /><ellipse cx="12.5" cy="9.2" rx="0.6" ry="0.7" fill="#0A0412" />
         </motion.svg>
-        <div className="relative mb-3 cursor-pointer" onClick={() => { setShowSettings(!showSettings); setShowNotifs(false); }} title={user?.displayName || 'Profile'}>
-          <div className="rounded-full p-[2px]" style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}>
-            <Avatar name={user?.displayName || '?'} src={user?.avatarUrl} size="md" />
+
+        {/* Your avatar */}
+        <div className="relative cursor-pointer" onClick={() => { setShowSettings(!showSettings); setShowNotifs(false); }} title={user?.displayName || 'Profile'}>
+          <div className="rounded-2xl p-[2px] transition-all hover:rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:shadow-[0_0_12px_rgba(124,58,237,0.4)]" style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}>
+            <div className="rounded-[14px] overflow-hidden hover:rounded-xl transition-all">
+              <Avatar name={user?.displayName || '?'} src={user?.avatarUrl} size="lg" />
+            </div>
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full" style={{ background: '#23A559', border: '2.5px solid #0A0412', boxShadow: '0 0 6px rgba(35,165,89,0.5)' }} />
         </div>
-        <div className="w-6 h-px bg-white/10 mb-5" />
-        <motion.button onClick={() => { setShowFriendSearch(!showFriendSearch); setFriendSearchQuery(''); }} className="w-9 h-9 rounded-full text-white flex items-center justify-center transition-all mb-5 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_16px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3)]" style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} title="Add Friend">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-        </motion.button>
-        <div className="w-6 h-px bg-white/10 mb-5" />
+
+        {/* Friends */}
         <PresenceFriendsList friends={friends} onlineActivity={onlineActivity} selectProject={selectProject} />
+
+        {/* Add friend */}
+        <div className="relative">
+          <motion.button onClick={() => { setShowFriendSearch(!showFriendSearch); setFriendSearchQuery(''); setFriendSearchResults([]); setTimeout(() => friendSearchInputRef.current?.focus(), 100); }} className="w-11 h-11 rounded-2xl text-white flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:rounded-xl hover:shadow-[0_0_16px_rgba(0,255,200,0.3)]" style={{ background: '#1a1a2e', border: '2px dashed rgba(255,255,255,0.15)' }} whileHover={{ scale: 1.05, borderColor: 'rgba(0,255,200,0.4)' }} whileTap={{ scale: 0.95 }} title="Add Friend">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+          </motion.button>
+          {showFriendSearch && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowFriendSearch(false)} />
+              <div className="absolute left-14 bottom-0 z-50 w-64 rounded-xl shadow-xl border border-white/10" style={{ background: '#141422' }}>
+                <div className="p-3">
+                  <input
+                    ref={friendSearchInputRef}
+                    type="text"
+                    placeholder="Search users..."
+                    className="w-full px-3 py-2 rounded-lg text-[13px] text-white bg-white/[0.06] border border-white/10 outline-none focus:border-purple-500/50 placeholder-white/30"
+                    value={friendSearchQuery}
+                    onChange={(e) => setFriendSearchQuery(e.target.value)}
+                  />
+                </div>
+                {friendSearchResults.length > 0 && (
+                  <div className="px-2 pb-2 max-h-48 overflow-y-auto">
+                    {friendSearchResults.map((u: any) => (
+                      <button
+                        key={u.id}
+                        onClick={async () => {
+                          try { await api.addFriend(u.id); const updated = await api.listFriends(); setFriends(updated); } catch {}
+                          setShowFriendSearch(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-[13px] text-white/80 hover:bg-white/[0.06] transition-colors"
+                      >
+                        <Avatar name={u.displayName || u.email} src={u.avatarUrl} size="sm" />
+                        <span className="truncate">{u.displayName || u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {friendSearchQuery.trim() && friendSearchResults.length === 0 && (
+                  <div className="px-3 pb-3 text-[12px] text-white/30">No users found</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-      {/* Top bar */}
-      <div className="shrink-0 h-[46px] flex items-center px-5 relative" style={{ background: 'transparent' }}>
-        {currentProject && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-0 shrink-0">
-            <div className="flex items-center gap-1 px-3 shrink-0">
-              <span className="text-[13px] text-white/60 uppercase tracking-wider font-medium">BPM</span>
-              <input type="text" inputMode="numeric" maxLength={3} className="w-12 text-[16px] font-bold text-white/80 outline-none px-1.5 py-0.5 rounded-lg transition-all text-center cursor-text" style={{ fontFamily: "'Consolas', monospace", background: 'rgba(20,10,40,0.6)', border: '1px solid rgba(124,58,237,0.15)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }} value={projectBpm} placeholder="" onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 3); setProjectBpm(val); if (bpmTimer.current) clearTimeout(bpmTimer.current); bpmTimer.current = setTimeout(() => { if (val) updateProject(currentProject.id, { tempo: parseInt(val) }); }, 500); }} onBlur={() => { if (bpmTimer.current) clearTimeout(bpmTimer.current); if (projectBpm) updateProject(currentProject.id, { tempo: parseInt(projectBpm) }); }} />
-            </div>
-            <div className="w-px h-5 bg-white/10 shrink-0" />
-            <div className="flex items-center gap-1 px-3 shrink-0">
-              <span className="text-[13px] text-white/60 uppercase tracking-wider font-medium">Time</span>
-              <select className="text-[16px] font-bold text-white/80 outline-none px-1.5 py-0.5 rounded-lg transition-all text-center cursor-pointer appearance-none" style={{ fontFamily: "'Consolas', monospace", backgroundImage: 'none', background: 'rgba(20,10,40,0.6)', border: '1px solid rgba(124,58,237,0.15)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }} value={projectTimeSig || ''} onChange={(e) => { setProjectTimeSig(e.target.value); updateProject(currentProject.id, { timeSignature: e.target.value } as any); }}>
-                <option value="" style={{ background: '#1a0e2e', color: '#fff' }}></option>
-                {['2/4','3/4','4/4','5/4','6/4','7/4','6/8','7/8','9/8','12/8'].map(ts => (<option key={ts} style={{ background: '#1a0e2e', color: '#fff' }} value={ts}>{ts}</option>))}
-              </select>
-            </div>
-            <div className="w-px h-5 bg-white/10 shrink-0" />
-            <div className="flex items-center gap-1 px-3 shrink-0">
-              <span className="text-[13px] text-white/60 uppercase tracking-wider font-medium">Key</span>
-              <input type="text" maxLength={3} className="w-12 text-[16px] font-bold text-white/80 outline-none px-1.5 py-0.5 rounded-lg transition-all text-center cursor-text" style={{ fontFamily: "'Consolas', monospace", background: 'rgba(20,10,40,0.6)', border: '1px solid rgba(124,58,237,0.15)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }} value={projectKey} placeholder="" onChange={(e) => { const val = e.target.value.slice(0, 3); setProjectKey(val); if (keyTimer.current) clearTimeout(keyTimer.current); keyTimer.current = setTimeout(() => { if (val) updateProject(currentProject.id, { key: val }); }, 500); }} onBlur={() => { if (keyTimer.current) clearTimeout(keyTimer.current); if (projectKey) updateProject(currentProject.id, { key: projectKey }); }} />
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1" />
-        <div className="flex items-center gap-1 shrink-0">
-          <button onClick={() => { setShowSocial(true); setSelectedProjectId(null); samplePackState.setSelectedPackId(null); setShowMarketplace(false); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-white/50 hover:text-white transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>Social
-          </button>
-          <button onClick={() => { setShowMarketplace(true); setShowSocial(false); setSelectedProjectId(null); samplePackState.setSelectedPackId(null); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-white/50 hover:text-white transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>Marketplace
-          </button>
-          <button onClick={() => { setShowFriendSearch(!showFriendSearch); setFriendSearchQuery(''); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-white/50 hover:text-white transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>Search
-          </button>
-        </div>
-      </div>
 
       <div className="flex flex-1 min-h-0 p-2 gap-2" style={{ paddingBottom: selectedProjectId && currentProject ? '48px' : '8px' }}>
         {/* Sidebar */}
-        <div className={`relative flex flex-col self-stretch ${sidebarCollapsed ? 'w-4 shrink-0' : 'w-[210px] shrink-0 glass glass-glow'}`}>
+        <div className={`relative flex flex-col self-stretch ${sidebarCollapsed ? 'w-4 shrink-0' : 'w-[210px] shrink-0 glass glass-glow rounded-2xl pt-2 px-2'}`}>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-5 h-10 flex items-center justify-center rounded-full glass hover:bg-white/[0.08] transition-colors"
@@ -519,7 +530,19 @@ export default function PluginLayout() {
                   <div className="flex items-center gap-3 shrink-0 rounded-2xl mb-1 pl-6 pr-3 min-w-0 h-[50px] glass glass-glow">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00FFC8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
                     <input className="text-[15px] font-bold text-white bg-transparent border border-transparent hover:bg-white/[0.04] hover:border-white/[0.08] focus:bg-white/[0.04] focus:border-ghost-green/30 outline-none px-2 py-0 rounded-md transition-colors min-w-[60px] flex-1 cursor-text" value={projectName} onChange={(e) => { const val = e.target.value; setProjectName(val); if (projectNameTimer.current) clearTimeout(projectNameTimer.current); projectNameTimer.current = setTimeout(() => { if (val.trim()) updateProject(currentProject.id, { name: val }); }, 500); }} onBlur={() => { if (projectNameTimer.current) clearTimeout(projectNameTimer.current); if (projectName.trim() && projectName !== currentProject.name) updateProject(currentProject.id, { name: projectName }); }} />
-                    {currentProject.updatedAt && (<><div className="w-px h-5 bg-white/10 shrink-0" /><span className="text-[14px] text-ghost-green font-medium shrink-0 whitespace-nowrap ml-2">{new Date(currentProject.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>)}
+                    {currentProject.updatedAt && (<><div className="w-px h-5 bg-white/10 shrink-0" /><span className="text-[14px] text-ghost-green font-semibold shrink-0 whitespace-nowrap">{new Date(currentProject.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></>)}
+                    <div className="w-px h-5 bg-white/10 shrink-0" />
+                    <div className="flex items-center gap-0 shrink-0">
+                      <span className="text-[13px] text-white/50 font-semibold px-1.5">BPM</span>
+                      <input type="text" inputMode="numeric" maxLength={3} className="w-10 text-[15px] font-bold text-white/90 outline-none px-1 py-0.5 rounded text-center cursor-text" style={{ fontFamily: "'Consolas', monospace", background: 'rgba(20,10,40,0.4)', border: '1px solid rgba(124,58,237,0.15)' }} value={projectBpm} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 3); setProjectBpm(val); if (bpmTimer.current) clearTimeout(bpmTimer.current); bpmTimer.current = setTimeout(() => { if (val) updateProject(currentProject.id, { tempo: parseInt(val) }); }, 500); }} onBlur={() => { if (bpmTimer.current) clearTimeout(bpmTimer.current); if (projectBpm) updateProject(currentProject.id, { tempo: parseInt(projectBpm) }); }} />
+                      <span className="text-[13px] text-white/50 font-semibold px-1.5">TIME</span>
+                      <select className="text-[15px] font-bold text-white/90 outline-none px-1 py-0.5 rounded text-center cursor-pointer appearance-none" style={{ fontFamily: "'Consolas', monospace", backgroundImage: 'none', background: 'rgba(20,10,40,0.4)', border: '1px solid rgba(124,58,237,0.15)' }} value={projectTimeSig || ''} onChange={(e) => { setProjectTimeSig(e.target.value); updateProject(currentProject.id, { timeSignature: e.target.value } as any); }}>
+                        <option value="" style={{ background: '#1a0e2e', color: '#fff' }}></option>
+                        {['2/4','3/4','4/4','5/4','6/4','7/4','6/8','7/8','9/8','12/8'].map(ts => (<option key={ts} style={{ background: '#1a0e2e', color: '#fff' }} value={ts}>{ts}</option>))}
+                      </select>
+                      <span className="text-[13px] text-white/50 font-semibold px-1.5">KEY</span>
+                      <input type="text" maxLength={3} className="w-10 text-[15px] font-bold text-white/90 outline-none px-1 py-0.5 rounded text-center cursor-text" style={{ fontFamily: "'Consolas', monospace", background: 'rgba(20,10,40,0.4)', border: '1px solid rgba(124,58,237,0.15)' }} value={projectKey} onChange={(e) => { const val = e.target.value.slice(0, 3); setProjectKey(val); if (keyTimer.current) clearTimeout(keyTimer.current); keyTimer.current = setTimeout(() => { if (val) updateProject(currentProject.id, { key: val }); }, 500); }} onBlur={() => { if (keyTimer.current) clearTimeout(keyTimer.current); if (projectKey) updateProject(currentProject.id, { key: projectKey }); }} />
+                    </div>
                     <div className="relative z-20" ref={projectMenuRef}>
                       <button onClick={(e) => { e.stopPropagation(); setShowProjectMenu(!showProjectMenu); }} className="w-9 h-9 flex items-center justify-center rounded-md text-ghost-text-muted hover:text-white hover:bg-white/[0.1] transition-colors cursor-pointer">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.5" /><circle cx="12" cy="12" r="2.5" /><circle cx="12" cy="19" r="2.5" /></svg>
@@ -598,8 +621,8 @@ export default function PluginLayout() {
                     </div>
                     </div>
 
-                    {/* Arrangement — scrollable 16-bar viewport or full view */}
-                    <div className="flex items-center gap-1 mb-1">
+                    {/* Arrangement — Download Stems + tracks */}
+                    <div className="flex items-center gap-1 mb-3">
                       <button
                         onClick={() => {
                           if (!currentProject?.tracks) return;
@@ -614,10 +637,10 @@ export default function PluginLayout() {
                           (window as any).__ghostPendingExport = JSON.stringify(items);
                           console.log('[DownloadStems] Set pending export:', items.length, 'items');
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors"
-                        style={{ backgroundColor: '#00FFC8', color: '#000' }}
+                        className="flex items-center gap-2 px-5 py-2 rounded-lg text-[14px] font-bold tracking-wide transition-all hover:brightness-110 active:scale-[0.98]"
+                        style={{ background: '#7C3AED', color: '#fff' }}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                           <polyline points="7 10 12 15 17 10" />
                           <line x1="12" y1="15" x2="12" y2="3" />
@@ -630,13 +653,6 @@ export default function PluginLayout() {
                       </button>
                       <button onClick={() => setTrackZoom('full')} className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${trackZoom === 'full' ? 'text-ghost-green' : 'text-white/30 hover:text-white/60'}`} title="Full Height">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
-                      </button>
-                      <div className="w-px h-4 bg-white/10" />
-                      <button onClick={() => setShowAllBars(!showAllBars)} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${showAllBars ? 'text-ghost-green bg-ghost-green/10' : 'text-white/40 hover:text-white/60 bg-white/[0.03]'}`}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          {showAllBars ? <><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></> : <><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></>}
-                        </svg>
-                        {showAllBars ? '16 Bars' : 'Full View'}
                       </button>
                     </div>
                     <ArrangementDropZone projectId={selectedProjectId!} onFilesAdded={() => fetchProject(selectedProjectId!)}>

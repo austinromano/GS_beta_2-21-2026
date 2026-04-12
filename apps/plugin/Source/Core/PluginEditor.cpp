@@ -231,6 +231,8 @@ GhostSessionEditor::GhostSessionEditor(GhostSessionProcessor& p)
 {
     auto options = juce::WebBrowserComponent::Options()
         .withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
+        .withWinWebView2Options(juce::WebBrowserComponent::Options::WinWebView2()
+            .withBackgroundColour(juce::Colour(0xFF0A0412)))
         .withKeepPageLoadedWhenBrowserIsHidden()
         .withNativeIntegrationEnabled()
         .withUserAgent("GhostSession/2.0 JUCE-Plugin")
@@ -356,6 +358,8 @@ GhostSessionEditor::GhostSessionEditor(GhostSessionProcessor& p)
             }
         })
         .withUserScript(
+            "document.documentElement.style.background='#0A0412';"
+            "document.body.style.background='#0A0412';"
             "function __ghostWaitForJuce(cb) {"
             "  if (window.__JUCE__ && window.__JUCE__.backend && window.__JUCE__.getNativeFunction) { cb(); return; }"
             "  var iv = setInterval(function() {"
@@ -395,7 +399,7 @@ GhostSessionEditor::GhostSessionEditor(GhostSessionProcessor& p)
 
     setResizable(true, true);
     setResizeLimits(900, 500, 1920, 1200);
-    setSize(1100, 720);
+    setSize(1400, 600);
 }
 
 GhostSessionEditor::~GhostSessionEditor()
@@ -411,7 +415,7 @@ GhostSessionEditor::~GhostSessionEditor()
 
 void GhostSessionEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1A1A2E));
+    g.fillAll(juce::Colour(0xFF0A0412));
 
     if (!webView || !webView->isVisible())
     {

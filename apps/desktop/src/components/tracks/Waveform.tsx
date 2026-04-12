@@ -182,18 +182,22 @@ export default memo(function Waveform({
   const soloCurrentTime = useAudioStore((s) => s.soloCurrentTime);
   const soloDuration = useAudioStore((s) => s.soloDuration);
 
+  const startOffset = useAudioStore((s) => trackId ? s.loadedTracks.get(trackId)?.startOffset ?? 0 : 0);
+
   let playheadPct = 0;
   let showLine = false;
-  if (showPlayhead) {
-    if (trackId && soloPlayingTrackId === trackId && soloDuration > 0) {
-      // Solo playback — show position within this track
+  if (showPlayhead && trackId) {
+    if (soloPlayingTrackId === trackId && soloDuration > 0) {
       playheadPct = (soloCurrentTime / soloDuration) * 100;
       showLine = playheadPct >= 0 && playheadPct <= 100;
-    } else if (isPlaying && duration > 0) {
-      // Project playback
-      const dur = bufferDuration > 0 ? bufferDuration : duration;
-      playheadPct = (currentTime / dur) * 100;
-      showLine = playheadPct >= 0 && playheadPct <= 100;
+    } else if (isPlaying && !soloPlayingTrackId && bufferDuration > 0) {
+      // Only show playhead when currentTime is within this clip's time range
+      const clipStart = startOffset;
+      const clipEnd = startOffset + bufferDuration;
+      if (currentTime >= clipStart && currentTime <= clipEnd) {
+        playheadPct = ((currentTime - clipStart) / bufferDuration) * 100;
+        showLine = true;
+      }
     }
   }
 
@@ -211,8 +215,7 @@ export default memo(function Waveform({
       {showLine && (
         <div
           className="absolute top-0 bottom-0 w-[2px] pointer-events-none"
-          style={{ background: '#00FFC8', boxShadow: '0 0 6px rgba(0,255,200,0.6), 0 0 12px rgba(0,255,200,0.2)' }}
-          style={{ left: `${playheadPct}%` }}
+          style={{ left: `${playheadPct}%`, background: '#00FFC8', boxShadow: '0 0 6px rgba(0,255,200,0.6), 0 0 12px rgba(0,255,200,0.2)' }}
         />
       )}
       {showTrimHandles && bufferDuration > 0 && (

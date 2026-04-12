@@ -47,11 +47,11 @@ function PresenceFriendsList({ friends, onlineActivity, selectProject, onRemoveF
             whileDrag={{ scale: 1.15, zIndex: 50 }}
           >
             <div onClick={() => { if (projectId) selectProject(projectId); }}>
-              <div className="rounded-full p-[2px] transition-all overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] group-hover:shadow-[0_0_12px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3)]"
+              <div className="rounded-2xl p-[2px] transition-all overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:rounded-xl hover:shadow-[0_0_12px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3)]"
                 style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
               >
-                <div className="rounded-full overflow-hidden">
-                  <Avatar name={f.displayName} src={f.avatarUrl} size="md" />
+                <div className="rounded-[14px] overflow-hidden hover:rounded-xl transition-all">
+                  <Avatar name={f.displayName} src={f.avatarUrl} size="lg" />
                 </div>
               </div>
               {isOnline ? (

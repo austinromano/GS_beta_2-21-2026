@@ -34,14 +34,14 @@ export default function Avatar({ name, src, colour, size = 'md' }: AvatarProps) 
         src={imgSrc}
         alt={name}
         draggable={false}
-        className={`${sizeMap[size]} rounded-full object-cover shrink-0 select-none`}
+        className={`${sizeMap[size]} rounded-[14px] object-cover shrink-0 select-none`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeMap[size]} rounded-full flex items-center justify-center font-bold shrink-0`}
+      className={`${sizeMap[size]} rounded-[14px] flex items-center justify-center font-bold shrink-0`}
       style={{ backgroundColor: bg, color: '#000' }}
     >
       {initials}

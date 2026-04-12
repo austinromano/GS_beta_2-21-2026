@@ -158,53 +158,6 @@ export default memo(function StemRow({
       <div className="flex-1 h-full overflow-hidden bg-[#0A0412] relative">
         <Waveform seed={name + type} height={compact ? 48 : 95} fileId={fileId} projectId={projectId} trackId={trackId} showPlayhead={true} />
         <div className="absolute inset-y-0 left-0 w-[45%] pointer-events-none" style={{ background: 'linear-gradient(90deg, rgba(10,4,18,0.85) 0%, rgba(10,4,18,0.4) 60%, transparent 100%)' }} />
-        <div className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center ${compact ? 'gap-1' : 'gap-1.5'}`}>
-          <motion.button
-            onClick={handlePlay}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-              isPlaying
-                ? 'text-white shadow-[0_0_20px_rgba(124,58,237,0.5),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]'
-                : ready
-                  ? 'text-white shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]'
-                  : 'bg-white/5 text-ghost-text-muted opacity-40'
-            }`}
-            style={{ background: isPlaying || ready ? 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' : undefined }}
-            disabled={!ready}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {isPlaying ? (
-              <svg width="12" height="12" viewBox="0 0 12 14" fill="currentColor">
-                <rect x="0" y="0" width="4" height="14" rx="1" />
-                <rect x="8" y="0" width="4" height="14" rx="1" />
-              </svg>
-            ) : (
-              <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" className="ml-0.5"><polygon points="0,0 10,6 0,12" /></svg>
-            )}
-          </motion.button>
-          <motion.button
-            onClick={() => setTrackMuted(trackId, !isMuted)}
-            className="w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]"
-            style={{ background: isMuted ? 'linear-gradient(180deg, #DC2626 0%, #991B1B 100%)' : 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <line x1="23" y1="9" x2="17" y2="15" />
-                <line x1="17" y1="9" x2="23" y2="15" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              </svg>
-            )}
-          </motion.button>
-        </div>
         <div className="absolute left-3 top-2 z-10 max-w-[40%]">
           {editing ? (
             <input
@@ -239,83 +192,38 @@ export default memo(function StemRow({
             </p>
           </div>
         )}
-        <div className="absolute top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{ right: '20px' }}>
-          {ready && downloadUrl && (
-            <motion.button
-              onMouseDown={handleDragGrip}
-              title="Drag to DAW"
-              className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all cursor-grab active:cursor-grabbing shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(0,255,200,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]"
-              style={{ background: 'linear-gradient(180deg, #059669 0%, #065F46 100%)' }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <polyline points="19 12 12 19 5 12" />
-              </svg>
-            </motion.button>
-          )}
-          {widthPercent !== undefined && widthPercent < 100 && (
-            <motion.button
-              onClick={() => {
-                useAudioStore.getState().loopTrackToFill(trackId, fileId || undefined);
-                const track = useAudioStore.getState().loadedTracks.get(trackId);
-                if (track && fileId) {
-                  cacheBuffer(fileId, track.buffer);
-                }
-              }}
-              title="Loop to fill"
-              className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(34,197,94,0.4),0_2px_8px_rgba(0,0,0,0.3)]"
-              style={{ background: 'linear-gradient(180deg, #059669 0%, #065F46 100%)' }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="17 1 21 5 17 9" />
-                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                <polyline points="7 23 3 19 7 15" />
-                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-              </svg>
-            </motion.button>
-          )}
-          <motion.button
-            onClick={onDelete}
-            title="Delete"
-            className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]"
-            style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-          </motion.button>
-          <motion.button
-            onClick={handleDownload}
-            title="Download"
-            className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]"
-            style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </motion.button>
-          <motion.button
-            title="Post to Feed"
-            className="w-11 h-11 rounded-full text-white flex items-center justify-center transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.4),0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]"
-            style={{ background: 'linear-gradient(180deg, #7C3AED 0%, #581C87 100%)' }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 3L3 10l7 3 3 7 8-17z" />
-            </svg>
-          </motion.button>
+        {/* Unified hover toolbar — all buttons same style */}
+        <div className="absolute top-1/2 -translate-y-1/2 right-2 z-20 flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg overflow-hidden" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <button onClick={handlePlay} disabled={!ready} title={isPlaying ? 'Pause' : 'Play'} className={`w-8 h-8 flex items-center justify-center transition-colors ${ready ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-white/20'}`}>
+            {isPlaying ? (
+              <svg width="10" height="10" viewBox="0 0 12 14" fill="currentColor"><rect x="1" y="1" width="3.5" height="12" rx="1" /><rect x="7.5" y="1" width="3.5" height="12" rx="1" /></svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 12" fill="currentColor"><polygon points="0,0 10,6 0,12" /></svg>
+            )}
+          </button>
+          <button onClick={() => setTrackMuted(trackId, !isMuted)} title={isMuted ? 'Unmute' : 'Mute'} className={`w-8 h-8 flex items-center justify-center transition-colors ${isMuted ? 'text-red-400 hover:text-red-300' : 'text-white/80 hover:text-white'} hover:bg-white/10`}>
+            {isMuted ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+            )}
+          </button>
+          <button onClick={async () => {
+            if (!fileId || !projectId) return;
+            try {
+              await api.addTrack(projectId, { name: name + ' (copy)', type: type, fileId, fileName: name } as any);
+              // Trigger refresh — find the fetchProject from parent
+              window.dispatchEvent(new CustomEvent('ghost-refresh-project'));
+            } catch(e) { console.error('Duplicate failed', e); }
+          }} title="Duplicate" className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+          </button>
+          <button onClick={onDelete} title="Delete" className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+          </button>
+          <button onClick={handleDownload} title="Download" className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+          </button>
         </div>
       </div>
     </div>
