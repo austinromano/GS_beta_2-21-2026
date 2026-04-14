@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
 import { useAudioStore } from '../../stores/audioStore';
-import { rawDataCache, audioBufferCache, getAudioData, snapToBar } from '../../lib/audio';
+import { rawDataCache, audioBufferCache, getAudioData, snapToBar, getPeaks, peaksCache, type ServerPeaks } from '../../lib/audio';
 
 export default memo(function Waveform({
   seed, height = 60, fileId, projectId, showPlayhead = false, trackId, showTrimHandles = false,
@@ -11,6 +11,9 @@ export default memo(function Waveform({
   const containerRef = useRef<HTMLDivElement>(null);
   const [rawData, setRawData] = useState<Float32Array | null>(
     fileId ? rawDataCache.get(fileId) || null : null
+  );
+  const [serverPeaks, setServerPeaks] = useState<ServerPeaks | null>(
+    fileId ? peaksCache.get(fileId) || null : null
   );
 
   const [loadFailed, setLoadFailed] = useState(false);
@@ -35,17 +38,27 @@ export default memo(function Waveform({
 
   useEffect(() => {
     if (!fileId || !projectId) return;
-    if (rawDataCache.has(fileId)) { setRawData(rawDataCache.get(fileId)!); return; }
-
     let cancelled = false;
 
-    getAudioData(projectId, fileId)
-      .then(({ channelData }) => {
-        if (!cancelled) setRawData(channelData);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadFailed(true);
-      });
+    // 1) Render instantly from server-computed peaks (tiny JSON).
+    if (!peaksCache.has(fileId)) {
+      getPeaks(projectId, fileId).then((p) => {
+        if (!cancelled && p) setServerPeaks(p);
+      }).catch(() => {});
+    }
+
+    // 2) Kick off full decode in background for playback, trim handles, etc.
+    if (rawDataCache.has(fileId)) {
+      setRawData(rawDataCache.get(fileId)!);
+    } else {
+      getAudioData(projectId, fileId)
+        .then(({ channelData }) => {
+          if (!cancelled) setRawData(channelData);
+        })
+        .catch(() => {
+          if (!cancelled) setLoadFailed(true);
+        });
+    }
 
     return () => { cancelled = true; };
   }, [fileId, projectId]);
@@ -76,7 +89,8 @@ export default memo(function Waveform({
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container || !audioData) return;
+    if (!canvas || !container) return;
+    if (!audioData && !serverPeaks) return;
 
     const w = container.clientWidth;
     const h = container.clientHeight;
@@ -94,12 +108,32 @@ export default memo(function Waveform({
     ctx.fillRect(0, 0, w, h);
 
     const mid = h / 2;
-    const samplesPerPixel = audioData.length / w;
 
-    // Compute both peak and RMS per column so we can render a two-layer
-    // waveform (peak halo + RMS body) like pro DAWs do.
+    // Compute both peak and RMS per column. Prefer server-side precomputed
+    // peaks when available — orders of magnitude faster than deriving from
+    // the raw channel data. Fall back to deriving from audioData if peaks
+    // haven't arrived yet (or if the server couldn't produce them, e.g.
+    // non-WAV files).
     const peaks = new Float32Array(w);
     const rms = new Float32Array(w);
+
+    if (serverPeaks) {
+      const nBins = serverPeaks.bins;
+      for (let x = 0; x < w; x++) {
+        // Map pixel column to bin range (may cover >=1 bins or <1)
+        const bStart = Math.floor((x / w) * nBins);
+        const bEnd = Math.max(bStart + 1, Math.floor(((x + 1) / w) * nBins));
+        let maxPk = 0;
+        let maxRm = 0;
+        for (let b = bStart; b < bEnd && b < nBins; b++) {
+          if (serverPeaks.peaks[b] > maxPk) maxPk = serverPeaks.peaks[b];
+          if (serverPeaks.rms[b] > maxRm) maxRm = serverPeaks.rms[b];
+        }
+        peaks[x] = maxPk;
+        rms[x] = maxRm;
+      }
+    } else if (audioData) {
+    const samplesPerPixel = audioData.length / w;
     for (let x = 0; x < w; x++) {
       let max = 0;
       let sumSq = 0;
@@ -115,6 +149,7 @@ export default memo(function Waveform({
       }
       peaks[x] = max;
       rms[x] = count > 0 ? Math.sqrt(sumSq / count) : 0;
+    }
     }
 
     const scalePeak = mid * 0.9;
@@ -147,7 +182,7 @@ export default memo(function Waveform({
     // Subtle center reference line
     ctx.fillStyle = 'rgba(139, 92, 246, 0.18)';
     ctx.fillRect(0, mid - 0.5, w, 1);
-  }, [audioData]);
+  }, [audioData, serverPeaks]);
 
   useEffect(() => {
     draw();

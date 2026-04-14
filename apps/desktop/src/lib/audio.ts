@@ -10,7 +10,26 @@ const insertionOrder: string[] = []; // tracks insertion order for eviction
 
 export const audioBufferCache = new Map<string, AudioBuffer>();
 export const rawDataCache = new Map<string, Float32Array>();
+// Pre-computed peaks fetched from the server for fast initial render.
+export type ServerPeaks = { peaks: number[]; rms: number[]; duration: number; sampleRate: number; channels: number; bins: number };
+export const peaksCache = new Map<string, ServerPeaks>();
+const peaksPromises = new Map<string, Promise<ServerPeaks | null>>();
 const downloadPromises = new Map<string, Promise<ArrayBuffer>>();
+
+export function getPeaks(projectId: string, fileId: string, bins = 1024): Promise<ServerPeaks | null> {
+  const cached = peaksCache.get(fileId);
+  if (cached) return Promise.resolve(cached);
+  let p = peaksPromises.get(fileId);
+  if (!p) {
+    p = api.getPeaks(projectId, fileId, bins).then((data) => {
+      peaksPromises.delete(fileId);
+      if (data) peaksCache.set(fileId, data);
+      return data;
+    });
+    peaksPromises.set(fileId, p);
+  }
+  return p;
+}
 
 function evictIfNeeded() {
   while (insertionOrder.length > MAX_CACHE_SIZE) {

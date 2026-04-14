@@ -138,6 +138,19 @@ export const api = {
   getDirectDownloadUrl: (projectId: string, fileId: string) =>
     `${BASE_URL}/projects/${projectId}/files/${fileId}/download${authToken ? `?token=${authToken}` : ''}`,
 
+  // Fetch pre-computed peaks from the server (tiny JSON, renders instantly)
+  getPeaks: async (projectId: string, fileId: string, bins = 1024): Promise<{ peaks: number[]; rms: number[]; duration: number; sampleRate: number; channels: number; bins: number } | null> => {
+    const headers: Record<string, string> = {};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    try {
+      const res = await fetch(`${BASE_URL}/projects/${projectId}/files/${fileId}/peaks?bins=${bins}`, { headers });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
   // Download file as ArrayBuffer (for audio decoding)
   downloadFile: async (projectId: string, fileId: string): Promise<ArrayBuffer> => {
     const headers: Record<string, string> = {};

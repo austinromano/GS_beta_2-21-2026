@@ -8,9 +8,10 @@ import { authMiddleware, type AuthUser } from '../middleware/auth.js';
 import { assertMember, assertEditor } from '../lib/membership.js';
 import { getUploadUrl, getDownloadUrl, isR2Configured, uploadToR2, downloadFromR2 } from '../services/storage.js';
 import { createReadStream } from 'node:fs';
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, stat, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
+import { parseWavPeaks, getCachedPeaks, setCachedPeaks } from '../lib/peaks.js';
 
 const UPLOADS_DIR = resolve(import.meta.dirname, '../../uploads');
 
@@ -123,6 +124,60 @@ fileRoutes.get('/:fileId/download', async (c) => {
     });
   } catch {
     throw new HTTPException(404, { message: 'File not found on disk' });
+  }
+});
+
+// Fast waveform peaks — returns ~1024 downsampled peak+RMS values as tiny JSON.
+// Lets the client render a waveform instantly without downloading the full WAV
+// or running decodeAudioData. Falls back to a 404 for non-WAV files so the
+// client can use its existing decode path.
+fileRoutes.get('/:fileId/peaks', async (c) => {
+  const fileId = c.req.param('fileId');
+  const bins = Math.min(4096, Math.max(64, parseInt(c.req.query('bins') || '1024', 10) || 1024));
+
+  const cacheKey = `${fileId}:${bins}`;
+  const cached = getCachedPeaks(cacheKey);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=31536000, immutable');
+    return c.json(cached);
+  }
+
+  const [file] = await db.select().from(files).where(eq(files.id, fileId)).limit(1).all();
+  if (!file) throw new HTTPException(404, { message: 'File not found' });
+
+  let buf: Buffer;
+  try {
+    const isS3Path = file.s3Key.startsWith('projects/');
+    if (isS3Path && isR2Configured()) {
+      const { stream } = await downloadFromR2(file.s3Key);
+      const chunks: Uint8Array[] = [];
+      const reader = (stream as any).getReader ? (stream as ReadableStream<Uint8Array>).getReader() : null;
+      if (reader) {
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+      } else {
+        // Node Readable fallback
+        for await (const chunk of stream as any) chunks.push(chunk);
+      }
+      buf = Buffer.concat(chunks.map((c) => Buffer.from(c)));
+    } else {
+      buf = await readFile(file.s3Key);
+    }
+  } catch {
+    throw new HTTPException(404, { message: 'File not readable' });
+  }
+
+  try {
+    const data = parseWavPeaks(buf, bins);
+    setCachedPeaks(cacheKey, data);
+    c.header('Cache-Control', 'public, max-age=31536000, immutable');
+    return c.json(data);
+  } catch {
+    throw new HTTPException(415, { message: 'Peaks extraction only supports WAV for now' });
   }
 });
 
