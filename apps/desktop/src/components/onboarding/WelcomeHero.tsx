@@ -10,9 +10,9 @@ interface Props {
 
 export default function WelcomeHero({ userName, hasProjects, onCreateProject, onCreateBeat, onExploreFeed }: Props) {
   const firstName = userName?.split(' ')[0] || 'there';
-  const heading = hasProjects ? 'Pick up where you left off' : `Welcome, ${firstName}`;
+  const heading = hasProjects ? `Welcome back, ${firstName}` : `Welcome, ${firstName}`;
   const subheading = hasProjects
-    ? 'Select a project from the sidebar, or start something new.'
+    ? 'Pick up where you left off — or start something new.'
     : 'Ghost Session lets you produce with other artists in real time — inside your DAW.';
 
   return (
