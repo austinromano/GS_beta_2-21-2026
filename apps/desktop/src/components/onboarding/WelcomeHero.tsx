@@ -136,7 +136,7 @@ function StepCard({ index, number, title, body }: { index: number; number: strin
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="group relative rounded-2xl p-5 overflow-hidden"
+      className="group relative rounded-2xl p-6 overflow-hidden"
       style={{
         background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -171,8 +171,8 @@ function StepCard({ index, number, title, body }: { index: number; number: strin
         {number}
       </div>
 
-      <div className="text-[15px] font-semibold text-white mb-1.5 tracking-tight">{title}</div>
-      <div className="text-[13px] text-white/55 leading-[1.55]">{body}</div>
+      <div className="text-[18px] font-semibold text-white mb-2 tracking-tight">{title}</div>
+      <div className="text-[15px] text-white/65 leading-[1.55]">{body}</div>
     </motion.div>
   );
 }
