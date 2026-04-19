@@ -46,15 +46,15 @@ function DockButton({ title, active, onClick, children }: { title: string; activ
       whileHover={{ scale: 1.06 }}
       whileTap={{ scale: 0.94 }}
       title={title}
-      className={`w-11 h-11 flex items-center justify-center rounded-2xl transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:rounded-xl ${
+      className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)] hover:rounded-lg ${
         active ? 'text-white' : 'text-white/60 hover:text-white'
       }`}
       style={{
         background: active ? 'linear-gradient(135deg, #00FFC8 0%, #7C3AED 100%)' : 'rgba(255,255,255,0.05)',
         border: active ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.08)',
         boxShadow: active
-          ? '0 0 16px rgba(0,255,200,0.3), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
-          : '0 2px 8px rgba(0,0,0,0.3)',
+          ? '0 0 14px rgba(0,255,200,0.3), 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
+          : '0 2px 6px rgba(0,0,0,0.3)',
       }}
     >
       {children}
@@ -293,7 +293,7 @@ export default function PluginLayout() {
   return (
     <div className="flex h-screen w-screen overflow-hidden relative">
       {/* Presence dock */}
-      <div className="flex flex-col items-center justify-start shrink-0 w-[60px] pt-4 pb-2 z-20 gap-4">
+      <div className="flex flex-col items-center justify-start shrink-0 w-[60px] pt-3 pb-2 z-20 gap-2 overflow-y-auto">
         <motion.svg
           onClick={() => setVizModeIdx((i) => (i + 1) % VIZ_MODES.length)}
           width="44" height="44" viewBox="0 0 20 22" fill="none"
@@ -341,7 +341,7 @@ export default function PluginLayout() {
           </svg>
         </DockButton>
 
-        <div className="w-8 h-px bg-white/10 my-1" />
+        <div className="w-6 h-px bg-white/10 my-0.5" />
 
         <div
           className="relative cursor-pointer"
