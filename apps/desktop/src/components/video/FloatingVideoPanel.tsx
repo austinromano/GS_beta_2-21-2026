@@ -2,10 +2,18 @@ import { useRef, useState, useEffect } from 'react';
 import { motion, useDragControls } from 'framer-motion';
 import VideoGrid from './VideoGrid';
 
+interface WebRtcHandles {
+  remoteStreams: Map<string, MediaStream>;
+  publishStream: (stream: MediaStream, userIds: string[]) => Promise<void>;
+  replaceStream: (stream: MediaStream) => void;
+  stopStream: () => void;
+}
+
 interface Props {
   members: any[];
   userId?: string;
   onClose: () => void;
+  webrtc: WebRtcHandles;
 }
 
 const STORAGE_KEY = 'ghost_video_panel_pos';
@@ -27,7 +35,7 @@ function readPos(): Pos {
   return { x: 0, y: 0, minimized: false };
 }
 
-export default function FloatingVideoPanel({ members, userId, onClose }: Props) {
+export default function FloatingVideoPanel({ members, userId, onClose, webrtc }: Props) {
   const [pos, setPos] = useState<Pos>(() => readPos());
   const dragControls = useDragControls();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +128,7 @@ export default function FloatingVideoPanel({ members, userId, onClose }: Props) 
       {/* Content */}
       {!pos.minimized && (
         <div className="p-2">
-          <VideoGrid members={members} userId={userId} variant="row" />
+          <VideoGrid members={members} userId={userId} variant="row" webrtc={webrtc} />
         </div>
       )}
     </motion.div>

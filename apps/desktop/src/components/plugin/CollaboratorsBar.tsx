@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import Avatar from '../common/Avatar';
 import type { PresenceInfo, ProjectMember } from '@ghost/types';
+import { useWebrtcStore } from '../../stores/webrtcStore';
 
 interface Props {
   members: ProjectMember[];
@@ -11,6 +12,7 @@ interface Props {
 export default function CollaboratorsBar({ members, onlineUsers, onInvite }: Props) {
   const sorted = [...members].sort((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : 0));
   const owners = sorted.filter((m) => m.role === 'owner');
+  const speakingUserIds = useWebrtcStore((s) => s.speakingUserIds);
 
   return (
     <div className="mb-4">
@@ -18,13 +20,28 @@ export default function CollaboratorsBar({ members, onlineUsers, onInvite }: Pro
         <div className="flex items-center -space-x-2">
           {sorted.map((m) => {
             const isOnline = onlineUsers.some((u) => u.userId === m.userId);
+            const isSpeaking = speakingUserIds.has(m.userId);
             return (
               <div
                 key={m.userId}
                 className="relative group cursor-pointer transition-transform hover:scale-105 hover:z-10"
-                title={m.displayName}
+                title={isSpeaking ? `${m.displayName} (speaking)` : m.displayName}
                 style={{ border: '2.5px solid #0A0A0F', borderRadius: '50%' }}
               >
+                {isSpeaking && (
+                  <motion.span
+                    className="absolute inset-[-4px] rounded-full pointer-events-none"
+                    animate={{
+                      boxShadow: [
+                        '0 0 0 0 rgba(34,197,94,0.55)',
+                        '0 0 0 6px rgba(34,197,94,0)',
+                        '0 0 0 0 rgba(34,197,94,0.55)',
+                      ],
+                    }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{ border: '2px solid rgba(34,197,94,0.6)' }}
+                  />
+                )}
                 <Avatar name={m.displayName || '?'} src={m.avatarUrl} size="lg" colour={m.role === 'owner' ? '#F0B232' : '#23A559'} />
                 {isOnline && (
                   <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full" style={{ background: '#23A559', border: '2.5px solid #0A0A0F' }} />

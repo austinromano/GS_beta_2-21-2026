@@ -2,10 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import Avatar from '../common/Avatar';
-import { useWebRTC } from '../../hooks/useWebRTC';
 import { useSessionStore } from '../../stores/sessionStore';
 
-export default function VideoGrid({ members, userId, onAddFriend, variant = 'grid' }: { members: any[]; userId?: string; onAddFriend?: () => void; variant?: 'grid' | 'row' }) {
+interface WebRtcHandles {
+  remoteStreams: Map<string, MediaStream>;
+  publishStream: (stream: MediaStream, userIds: string[]) => Promise<void>;
+  replaceStream: (stream: MediaStream) => void;
+  stopStream: () => void;
+}
+
+export default function VideoGrid({ members, userId, onAddFriend, variant = 'grid', webrtc }: { members: any[]; userId?: string; onAddFriend?: () => void; variant?: 'grid' | 'row'; webrtc: WebRtcHandles }) {
   const [cameraOn, setCameraOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -26,9 +32,8 @@ export default function VideoGrid({ members, userId, onAddFriend, variant = 'gri
   const micBtnRef = useRef<HTMLButtonElement>(null);
   const [menuPos, setMenuPos] = useState<{ top: number } | null>(null);
 
-  const currentProjectId = useSessionStore((s) => s.currentProjectId);
   const onlineUsers = useSessionStore((s) => s.onlineUsers);
-  const { remoteStreams, publishStream, replaceStream, stopStream } = useWebRTC(currentProjectId, userId || null);
+  const { remoteStreams, publishStream, replaceStream, stopStream } = webrtc;
   const hasRemoteStreams = remoteStreams.size > 0;
 
   // Fetch audio + video input devices

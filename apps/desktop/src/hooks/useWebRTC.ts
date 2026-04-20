@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getSocket } from '../lib/socket';
 import { sendWebRTCOffer, sendWebRTCAnswer, sendICECandidate, sendWebRTCLeave } from '../lib/socket';
+import { useWebrtcStore } from '../stores/webrtcStore';
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
@@ -9,17 +10,72 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-interface RemoteStream {
-  userId: string;
-  stream: MediaStream;
+interface SpeakingMonitor {
+  ctx: AudioContext;
+  raf: number;
 }
 
 export function useWebRTC(projectId: string | null, userId: string | null) {
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const speakingMonitorsRef = useRef<Map<string, SpeakingMonitor>>(new Map());
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
+
+  const attachSpeakingMonitor = useCallback((remoteUserId: string, stream: MediaStream) => {
+    // Tear down any previous monitor for this user.
+    const prev = speakingMonitorsRef.current.get(remoteUserId);
+    if (prev) {
+      cancelAnimationFrame(prev.raf);
+      try { prev.ctx.close(); } catch {}
+      speakingMonitorsRef.current.delete(remoteUserId);
+    }
+
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) return;
+
+    try {
+      const ctx = new AudioContext();
+      const audioOnly = new MediaStream(audioTracks);
+      const source = ctx.createMediaStreamSource(audioOnly);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.5;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      let lastSpeaking = false;
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
+        const speaking = avg > 8;
+        if (speaking !== lastSpeaking) {
+          useWebrtcStore.getState().setSpeaking(remoteUserId, speaking);
+          lastSpeaking = speaking;
+        }
+        const monitor = speakingMonitorsRef.current.get(remoteUserId);
+        if (monitor) monitor.raf = requestAnimationFrame(tick);
+      };
+      const raf = requestAnimationFrame(tick);
+      speakingMonitorsRef.current.set(remoteUserId, { ctx, raf });
+    } catch (err) {
+      // Speaking detection is best-effort; never block playback.
+      if (import.meta.env.DEV) console.warn('[useWebRTC] speaking monitor failed:', err);
+    }
+  }, []);
+
+  const detachSpeakingMonitor = useCallback((remoteUserId: string) => {
+    const monitor = speakingMonitorsRef.current.get(remoteUserId);
+    if (monitor) {
+      cancelAnimationFrame(monitor.raf);
+      try { monitor.ctx.close(); } catch {}
+      speakingMonitorsRef.current.delete(remoteUserId);
+    }
+    useWebrtcStore.getState().setSpeaking(remoteUserId, false);
+  }, []);
 
   // Clean up a single peer
   const closePeer = useCallback((peerId: string) => {
@@ -28,12 +84,13 @@ export function useWebRTC(projectId: string | null, userId: string | null) {
       pc.close();
       peersRef.current.delete(peerId);
     }
+    detachSpeakingMonitor(peerId);
     setRemoteStreams((prev) => {
       const next = new Map(prev);
       next.delete(peerId);
       return next;
     });
-  }, []);
+  }, [detachSpeakingMonitor]);
 
   // Create a peer connection for a remote user
   const createPeer = useCallback((remoteUserId: string, initiator: boolean) => {
@@ -53,11 +110,13 @@ export function useWebRTC(projectId: string | null, userId: string | null) {
 
     // Handle incoming remote tracks
     pc.ontrack = (e) => {
+      const stream = e.streams[0];
       setRemoteStreams((prev) => {
         const next = new Map(prev);
-        next.set(remoteUserId, e.streams[0]);
+        next.set(remoteUserId, stream);
         return next;
       });
+      attachSpeakingMonitor(remoteUserId, stream);
     };
 
     // Send ICE candidates

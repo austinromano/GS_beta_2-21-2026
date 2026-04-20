@@ -15,6 +15,7 @@ import { devWarn } from '../../lib/log';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useCursorTracking } from '../../hooks/useCursorTracking';
 import { useSamplePacks } from '../../hooks/useSamplePacks';
+import { useWebRTC } from '../../hooks/useWebRTC';
 
 // Extracted components
 import ProjectListSidebar from '../layout/ProjectListSidebar';
@@ -98,6 +99,16 @@ export default function PluginLayout() {
   const cursorContainerRef = useRef<HTMLDivElement>(null);
   const currentProjectId = useSessionStore((s) => s.currentProjectId);
   useCursorTracking(cursorContainerRef, currentProjectId);
+
+  // WebRTC is owned here so it keeps running even when the floating video
+  // panel is hidden — otherwise we'd miss inbound offers while collapsed.
+  const webrtc = useWebRTC(currentProjectId, user?.id ?? null);
+  const remoteStreamCount = webrtc.remoteStreams.size;
+
+  // Auto-open the floating panel the first time a remote stream arrives.
+  useEffect(() => {
+    if (remoteStreamCount > 0 && videoGridHidden) setVideoGridHidden(false);
+  }, [remoteStreamCount]);
 
   const audioCleanup = useAudioStore((s) => s.cleanup);
   const members = currentProject?.members || [];
@@ -675,7 +686,7 @@ export default function PluginLayout() {
                     {!chatCollapsed && (
                       <>
                         <div className="w-full shrink-0">
-                          <VideoGrid members={members} userId={user?.id} />
+                          <VideoGrid members={members} userId={user?.id} webrtc={webrtc} />
                         </div>
                         <div className="w-full flex flex-col min-h-0 flex-1 overflow-hidden glass glass-glow rounded-2xl">
                           <ChatPanel />
@@ -723,6 +734,7 @@ export default function PluginLayout() {
           members={members}
           userId={user?.id}
           onClose={() => setVideoGridHidden(true)}
+          webrtc={webrtc}
         />
       )}
 
