@@ -155,13 +155,29 @@ export default memo(function Waveform({
     const scalePeak = mid * 0.9;
     const scaleRms = mid * 1.7; // amplify RMS — it's always smaller than peak
 
+    // Aurora gradients — horizontal ribbon of indigo → violet → fuchsia → violet → indigo.
+    // Symmetric so short and long clips both read as balanced.
+    const bodyGrad = ctx.createLinearGradient(0, 0, w, 0);
+    bodyGrad.addColorStop(0,    '#6366F1'); // indigo
+    bodyGrad.addColorStop(0.28, '#A855F7'); // violet
+    bodyGrad.addColorStop(0.5,  '#EC4899'); // pink peak
+    bodyGrad.addColorStop(0.72, '#A855F7'); // violet
+    bodyGrad.addColorStop(1,    '#6366F1'); // indigo
+
+    const haloGrad = ctx.createLinearGradient(0, 0, w, 0);
+    haloGrad.addColorStop(0,    'rgba(99, 102, 241, 0.30)');
+    haloGrad.addColorStop(0.28, 'rgba(168, 85, 247, 0.34)');
+    haloGrad.addColorStop(0.5,  'rgba(236, 72, 153, 0.34)');
+    haloGrad.addColorStop(0.72, 'rgba(168, 85, 247, 0.34)');
+    haloGrad.addColorStop(1,    'rgba(99, 102, 241, 0.30)');
+
     // Peak halo (outer translucent shape)
     ctx.beginPath();
     ctx.moveTo(0, mid - peaks[0] * scalePeak);
     for (let x = 1; x < w; x++) ctx.lineTo(x, mid - peaks[x] * scalePeak);
     for (let x = w - 1; x >= 0; x--) ctx.lineTo(x, mid + peaks[x] * scalePeak);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(139, 92, 246, 0.32)';
+    ctx.fillStyle = haloGrad;
     ctx.fill();
 
     // RMS body (inner solid shape)
@@ -176,11 +192,15 @@ export default memo(function Waveform({
       ctx.lineTo(x, mid + top);
     }
     ctx.closePath();
-    ctx.fillStyle = '#8B5CF6';
+    ctx.fillStyle = bodyGrad;
     ctx.fill();
 
-    // Subtle center reference line
-    ctx.fillStyle = 'rgba(139, 92, 246, 0.18)';
+    // Subtle center reference line — match the aurora hue at that column
+    const centerGrad = ctx.createLinearGradient(0, 0, w, 0);
+    centerGrad.addColorStop(0,   'rgba(99, 102, 241, 0.18)');
+    centerGrad.addColorStop(0.5, 'rgba(236, 72, 153, 0.22)');
+    centerGrad.addColorStop(1,   'rgba(99, 102, 241, 0.18)');
+    ctx.fillStyle = centerGrad;
     ctx.fillRect(0, mid - 0.5, w, 1);
   }, [audioData, serverPeaks]);
 
