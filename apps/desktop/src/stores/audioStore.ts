@@ -83,10 +83,13 @@ export const useAudioStore = create<AudioState>((set, get) => {
     const elapsed = ctx.currentTime - startedAt;
     const dur = get().duration;
     if (dur > 0 && elapsed >= dur) {
+      // Loop: restart sources from bar 1 and keep the RAF running so the
+      // playhead wraps back to 0 instead of freezing at the end.
+      set({ currentTime: 0 });
       startAllSources(0);
-      return;
+    } else {
+      set({ currentTime: elapsed });
     }
-    set({ currentTime: elapsed });
     rafId = requestAnimationFrame(updatePosition);
   }
 

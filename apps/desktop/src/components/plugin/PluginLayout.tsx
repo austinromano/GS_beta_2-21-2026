@@ -82,7 +82,7 @@ export default function PluginLayout() {
   const [chatCollapsed, setChatCollapsed] = useState(false);
   const [videoGridHidden, setVideoGridHidden] = useState(true);
   const [shareStatus, setShareStatus] = useState('');
-  const [showAllBars] = useState(false);
+  const [showAllBars, setShowAllBars] = useState(false);
   const [vizModeIdx, setVizModeIdx] = useState(0);
   const vizMode = VIZ_MODES[vizModeIdx];
   const [isBeatView, setIsBeatView] = useState(false);
@@ -603,6 +603,17 @@ export default function PluginLayout() {
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                                   <line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => setShowAllBars((v) => !v)}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${showAllBars ? 'text-ghost-green' : 'text-white/30 hover:text-white/60'}`}
+                                title={showAllBars ? 'Back to 8-bar view' : 'Fit whole arrangement'}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="4 8 2 12 4 16" />
+                                  <polyline points="20 8 22 12 20 16" />
+                                  <line x1="2" y1="12" x2="22" y2="12" />
                                 </svg>
                               </button>
                             </div>

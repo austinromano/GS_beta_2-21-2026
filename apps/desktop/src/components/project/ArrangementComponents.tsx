@@ -42,22 +42,23 @@ export function ArrangementDropZone({ projectId, onFilesAdded, children }: { pro
 
 const BARS_PER_VIEW = 8;
 
-export function ArrangementScrollView({ children }: { children: React.ReactNode; showAll?: boolean }) {
+export function ArrangementScrollView({ children, showAll }: { children: React.ReactNode; showAll?: boolean }) {
   const { numBars, arrangementDur } = useArrangement();
   const currentTime = useAudioStore((s) => s.currentTime);
   const isPlaying = useAudioStore((s) => s.isPlaying);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Inner wrapper is wider than the viewport so only BARS_PER_VIEW bars show
-  // at a time. When numBars ≤ BARS_PER_VIEW, the arrangement fits without
-  // scrolling and inner width stays at 100%.
-  const innerWidthPct = Math.max(100, (numBars / BARS_PER_VIEW) * 100);
+  // at a time. When showAll is on, the whole arrangement is fit to the
+  // viewport. When numBars ≤ BARS_PER_VIEW, we already fit without scrolling.
+  const innerWidthPct = showAll ? 100 : Math.max(100, (numBars / BARS_PER_VIEW) * 100);
 
   // Auto-follow: once the playhead leaves the visible range, page forward (or
-  // back, if the user seeked) so the playhead stays on screen.
+  // back, if the user seeked) so the playhead stays on screen. Skipped when
+  // showAll is on — the whole arrangement is already in view.
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !isPlaying || arrangementDur <= 0) return;
+    if (!el || !isPlaying || arrangementDur <= 0 || showAll) return;
     const inner = el.firstElementChild as HTMLElement | null;
     if (!inner) return;
     const playheadX = (currentTime / arrangementDur) * inner.clientWidth;
@@ -69,7 +70,14 @@ export function ArrangementScrollView({ children }: { children: React.ReactNode;
     } else if (playheadX < viewStart) {
       el.scrollTo({ left: Math.max(0, playheadX - 20), behavior: 'smooth' });
     }
-  }, [currentTime, isPlaying, arrangementDur]);
+  }, [currentTime, isPlaying, arrangementDur, showAll]);
+
+  // When toggling back to 8-bar view, reset scroll so the playhead is visible.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || showAll) return;
+    el.scrollTo({ left: 0, behavior: 'auto' });
+  }, [showAll]);
 
   return (
     <div
