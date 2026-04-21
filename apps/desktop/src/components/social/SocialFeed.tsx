@@ -291,9 +291,8 @@ function SocialFeed({ user, friends }: { user: any; friends: any[] }) {
       ))}</div>
       <div className="flex-1 overflow-y-auto px-5 pt-2 pb-3">
         {tab === 'feed' && (<>
-          <CommunityRooms />
           <div
-            className={`bg-ghost-surface/60 rounded-xl border px-4 py-3 mb-4 transition-all ${dropDragOver ? 'border-purple-400/60 bg-purple-500/5' : 'border-white/[0.06]'}`}
+            className={`bg-ghost-surface/60 rounded-xl border px-3 py-2 mb-3 transition-all ${dropDragOver ? 'border-purple-400/60 bg-purple-500/5' : 'border-white/[0.06]'}`}
             onDragOver={(e) => { e.preventDefault(); setDropDragOver(true); }}
             onDragLeave={() => setDropDragOver(false)}
             onDrop={(e) => {
@@ -301,20 +300,33 @@ function SocialFeed({ user, friends }: { user: any; friends: any[] }) {
               const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('audio/') || f.name.match(/\.(wav|mp3|flac|aiff|ogg|m4a)$/i));
               if (file) setDropFile(file);
             }}
-          ><div className="flex items-start gap-3"><Avatar name={user?.displayName || '?'} src={user?.avatarUrl} size="md" /><div className="flex-1">
-            <textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="What are you working on?" className="w-full bg-transparent text-[14px] text-white placeholder:text-white/30 outline-none resize-none min-h-[36px]" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePost(); } }} />
+          >
+            <div className="flex items-center gap-2">
+              <Avatar name={user?.displayName || '?'} src={user?.avatarUrl} size="sm" />
+              <input
+                value={newPost}
+                onChange={(e) => setNewPost(e.target.value)}
+                placeholder={dropFile ? 'Add a caption…' : "What are you working on? Drop a sample or beat to share"}
+                className="flex-1 min-w-0 bg-transparent text-[13px] text-white placeholder:text-white/35 outline-none"
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePost(); } }}
+              />
+              <button
+                onClick={handlePost}
+                disabled={(!newPost.trim() && !dropFile) || uploading}
+                className="shrink-0 h-7 px-3 rounded-full text-[12px] font-semibold bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                {uploading ? '…' : 'Post'}
+              </button>
+            </div>
             {dropFile && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B794F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                <span className="text-[13px] text-purple-300 flex-1 truncate">{dropFile.name}</span>
-                <button onClick={() => setDropFile(null)} className="text-white/30 hover:text-white text-xs">X</button>
+              <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B794F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                <span className="text-[12px] text-purple-300 flex-1 truncate">{dropFile.name}</span>
+                <button onClick={() => setDropFile(null)} className="text-white/30 hover:text-white text-[11px]">×</button>
               </div>
             )}
-            {!dropFile && (
-              <p className="text-[16px] text-white/30 mt-1 font-medium">Drag & drop a sample or beat to share</p>
-            )}
-            <div className="flex justify-end mt-2"><button onClick={handlePost} disabled={(!newPost.trim() && !dropFile) || uploading} className="px-4 py-1.5 rounded-lg text-[13px] font-semibold bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">{uploading ? 'Uploading...' : 'Post'}</button></div>
-          </div></div></div>
+          </div>
+          <CommunityRooms />
           {loading ? <div className="text-center text-white/30 py-12">Loading...</div> : posts.length === 0 ? (
             <div className="text-center py-16"><div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B794F6" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg></div><p className="text-[16px] text-white font-semibold">No posts yet</p><p className="text-[13px] text-white/40 mt-1">Share what you're working on</p></div>
           ) : <div className="space-y-3">{posts.map(renderPost)}</div>}
