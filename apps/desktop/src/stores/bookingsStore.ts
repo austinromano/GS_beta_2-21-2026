@@ -2,17 +2,22 @@ import { create } from 'zustand';
 import { api, type Booking } from '../lib/api';
 import { getSocket } from '../lib/socket';
 import { useProjectStore } from './projectStore';
+import { useAuthStore } from './authStore';
 
 interface BookingsState {
   bookings: Booking[];
   loading: boolean;
   error: string | null;
+  // Xbox-style toast queue: incoming invites (pending, addressed to me)
+  // land here and a global toast renders the head of the queue.
+  inviteQueue: Booking[];
   bootstrap: () => Promise<void>;
   create: (input: { inviteeId: string; title?: string; scheduledAt: string; durationMin: number }) => Promise<Booking>;
   accept: (id: string) => Promise<void>;
   decline: (id: string) => Promise<void>;
   cancel: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  dismissInvite: (id: string) => void;
 }
 
 let socketHandlerAttached = false;
@@ -21,6 +26,7 @@ export const useBookingsStore = create<BookingsState>((set, get) => ({
   bookings: [],
   loading: false,
   error: null,
+  inviteQueue: [],
 
   bootstrap: async () => {
     set({ loading: true, error: null });
@@ -38,7 +44,10 @@ export const useBookingsStore = create<BookingsState>((set, get) => ({
       socket.on('booking-updated', (payload) => {
         const current = get().bookings;
         if (payload.kind === 'deleted') {
-          set({ bookings: current.filter((b) => b.id !== payload.bookingId) });
+          set({
+            bookings: current.filter((b) => b.id !== payload.bookingId),
+            inviteQueue: get().inviteQueue.filter((b) => b.id !== payload.bookingId),
+          });
           return;
         }
         const booking = payload.booking as Booking | undefined;
@@ -51,6 +60,24 @@ export const useBookingsStore = create<BookingsState>((set, get) => ({
           next[idx] = booking;
           set({ bookings: next });
         }
+
+        // Enqueue a toast for invites addressed to me that are still pending.
+        // On kind='created' from the server we always push; on 'updated' we
+        // only push if the status flipped to pending (rare, e.g. reschedule).
+        const me = useAuthStore.getState().user?.id;
+        const isForMe = !!me && booking.inviteeId === me;
+        if (payload.kind === 'created' && isForMe && booking.status === 'pending') {
+          const queue = get().inviteQueue;
+          if (!queue.some((b) => b.id === booking.id)) {
+            set({ inviteQueue: [...queue, booking] });
+          }
+        }
+        // If the status left 'pending' (someone acted, or creator canceled),
+        // drop it from the toast queue so we don't show a stale invite.
+        if (booking.status !== 'pending') {
+          set({ inviteQueue: get().inviteQueue.filter((b) => b.id !== booking.id) });
+        }
+
         // When a booking just gained a projectId (i.e. the invitee accepted
         // and the server auto-provisioned a shared project), refresh the
         // project list directly so both users' sidebars show it immediately,
@@ -72,15 +99,21 @@ export const useBookingsStore = create<BookingsState>((set, get) => ({
   accept: async (id) => {
     const prev = get().bookings.find((b) => b.id === id);
     const updated = await api.updateBooking(id, { status: 'accepted' });
-    set({ bookings: get().bookings.map((b) => b.id === id ? updated : b) });
+    set({
+      bookings: get().bookings.map((b) => b.id === id ? updated : b),
+      inviteQueue: get().inviteQueue.filter((b) => b.id !== id),
+    });
     if (updated.projectId && prev?.projectId !== updated.projectId) {
-      useProjectStore.getState().fetchProjects();
+      await useProjectStore.getState().fetchProjects();
     }
   },
 
   decline: async (id) => {
     const updated = await api.updateBooking(id, { status: 'declined' });
-    set({ bookings: get().bookings.map((b) => b.id === id ? updated : b) });
+    set({
+      bookings: get().bookings.map((b) => b.id === id ? updated : b),
+      inviteQueue: get().inviteQueue.filter((b) => b.id !== id),
+    });
   },
 
   cancel: async (id) => {
@@ -90,6 +123,13 @@ export const useBookingsStore = create<BookingsState>((set, get) => ({
 
   remove: async (id) => {
     await api.deleteBooking(id);
-    set({ bookings: get().bookings.filter((b) => b.id !== id) });
+    set({
+      bookings: get().bookings.filter((b) => b.id !== id),
+      inviteQueue: get().inviteQueue.filter((b) => b.id !== id),
+    });
+  },
+
+  dismissInvite: (id) => {
+    set({ inviteQueue: get().inviteQueue.filter((b) => b.id !== id) });
   },
 }));
