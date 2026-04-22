@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Reorder } from 'framer-motion';
 import { useAudioStore, pendingTrackOffsets } from '../../stores/audioStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { api } from '../../lib/api';
@@ -190,9 +189,6 @@ function LaneClip({ track, selectedProjectId, deleteTrack, trackZoom, laneWidth,
     const laneEl = clipEl.parentElement;
     if (!laneEl) return;
 
-    // Swallow so the parent Reorder.Item doesn't also grab the pointer and
-    // try to kick off a vertical lane reorder.
-    e.stopPropagation();
     e.preventDefault();
     const startX = e.clientX;
     const laneWidthPx = laneEl.clientWidth;
@@ -379,67 +375,30 @@ export function DraggableTrackList({ tracks, selectedProjectId, deleteTrack, upd
 
   const laneHeight = trackZoom === 'half' ? 50 : 72;
 
-  // framer-motion Reorder works on a flat list of primitive values. We use
-  // the lane keys (fileId or trackId for standalone) as the reorderable items
-  // and look up the tracks for each key at render time.
-  const laneKeys = useMemo(() => Array.from(lanes.keys()), [tracks]);
-
-  const handleReorder = async (newKeys: string[]) => {
-    // Flatten back to per-track id order, preserving clip order within a lane.
-    const flat: string[] = [];
-    for (const k of newKeys) {
-      const laneTracks = lanes.get(k) || [];
-      for (const t of laneTracks) flat.push(t.id);
-    }
-    try {
-      await api.reorderTracks(selectedProjectId, flat);
-      // Refetch so the project's tracks array matches the new order and the
-      // next render reflects the commit.
-      fetchProject(selectedProjectId);
-    } catch (err) {
-      console.error('[TrackList] reorder failed', err);
-    }
-  };
-
   return (
-    <Reorder.Group
-      axis="y"
-      values={laneKeys}
-      onReorder={handleReorder}
-      className="flex flex-col gap-1 mt-2"
-      style={{ listStyle: 'none', padding: 0, margin: 0 }}
-    >
-      {laneKeys.map((fileId) => {
-        const laneTracks = lanes.get(fileId) || [];
-        return (
-          <Reorder.Item
-            key={fileId}
-            value={fileId}
-            style={{ listStyle: 'none' }}
-            whileDrag={{ scale: 1.01, zIndex: 40, boxShadow: '0 8px 24px rgba(0,0,0,0.45)' }}
-          >
-            <div
-              className="relative rounded-lg cursor-grab active:cursor-grabbing"
-              style={{ height: laneHeight, background: 'rgba(10,4,18,0.4)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              {laneTracks.map((track: any, idx: number) => (
-                <LaneClip
-                  key={track.id}
-                  track={track}
-                  selectedProjectId={selectedProjectId}
-                  deleteTrack={deleteTrack}
-                  trackZoom={trackZoom}
-                  laneWidth={100}
-                  clipIndex={idx}
-                  totalClips={laneTracks.length}
-                  members={members}
-                />
-              ))}
-            </div>
-          </Reorder.Item>
-        );
-      })}
-    </Reorder.Group>
+    <div className="flex flex-col gap-1 mt-2">
+      {Array.from(lanes.entries()).map(([fileId, laneTracks]) => (
+        <div
+          key={fileId}
+          className="relative rounded-lg"
+          style={{ height: laneHeight, background: 'rgba(10,4,18,0.4)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+        >
+          {laneTracks.map((track: any, idx: number) => (
+            <LaneClip
+              key={track.id}
+              track={track}
+              selectedProjectId={selectedProjectId}
+              deleteTrack={deleteTrack}
+              trackZoom={trackZoom}
+              laneWidth={100}
+              clipIndex={idx}
+              totalClips={laneTracks.length}
+              members={members}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
