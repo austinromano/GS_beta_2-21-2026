@@ -212,7 +212,9 @@ export const communityMessages = sqliteTable('community_messages', {
   id: uuid().primaryKey(),
   roomId: text('room_id').notNull(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  text: text('text').notNull(),
+  text: text('text').notNull().default(''),
+  audioFileId: text('audio_file_id'),
+  audioFileName: text('audio_file_name'),
   createdAt: timestamp('created_at').notNull(),
 });
 

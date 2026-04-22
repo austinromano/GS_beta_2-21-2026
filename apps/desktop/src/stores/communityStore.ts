@@ -9,7 +9,7 @@ interface CommunityState {
   loading: boolean;
   openRoom: (roomId: string) => Promise<void>;
   closeRoom: () => void;
-  send: (text: string) => void;
+  send: (payload: { text?: string; audioFileId?: string; audioFileName?: string }) => void;
   deleteMessage: (messageId: string) => void;
 }
 
@@ -82,11 +82,16 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     set({ activeRoomId: null });
   },
 
-  send: (text) => {
+  send: (payload) => {
     const roomId = get().activeRoomId;
     if (!roomId) return;
     const socket = getSocket();
-    socket?.emit('community:send', { roomId, text });
+    socket?.emit('community:send', {
+      roomId,
+      text: payload.text,
+      audioFileId: payload.audioFileId,
+      audioFileName: payload.audioFileName,
+    });
   },
 
   deleteMessage: (messageId) => {

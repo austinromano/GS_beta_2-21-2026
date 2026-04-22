@@ -70,7 +70,7 @@ export interface ClientToServerEvents {
   }) => void;
   'community:join': (data: { roomId: string }) => void;
   'community:leave': (data: { roomId: string }) => void;
-  'community:send': (data: { roomId: string; text: string }) => void;
+  'community:send': (data: { roomId: string; text?: string; audioFileId?: string; audioFileName?: string }) => void;
   'community:delete': (data: { roomId: string; messageId: string }) => void;
 }
 
@@ -155,6 +155,8 @@ export interface ServerToClientEvents {
     displayName: string;
     avatarUrl: string | null;
     text: string;
+    audioFileId?: string | null;
+    audioFileName?: string | null;
     createdAt: string;
   }) => void;
   'community:message-deleted': (data: { roomId: string; messageId: string }) => void;

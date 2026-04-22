@@ -48,18 +48,25 @@ export function registerCommunityHandlers(io: IO, socket: SK) {
     broadcastPresence(io, roomId);
   });
 
-  socket.on('community:send', async ({ roomId, text }) => {
+  socket.on('community:send', async ({ roomId, text, audioFileId, audioFileName }) => {
     if (!KNOWN_ROOMS.has(roomId)) return;
     const trimmed = (text || '').trim();
-    if (!trimmed || trimmed.length > 2000) return;
+    if (trimmed.length > 2000) return;
+    // Must have something to send: text, audio, or both.
+    if (!trimmed && !audioFileId) return;
 
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     await db.insert(communityMessages).values({
-      id, roomId, userId: socket.data.userId, text: trimmed, createdAt,
+      id,
+      roomId,
+      userId: socket.data.userId,
+      text: trimmed,
+      audioFileId: audioFileId || null,
+      audioFileName: audioFileName || null,
+      createdAt,
     }).run();
 
-    // Read the user's avatar fresh (socket.data.avatarUrl is cached at connect time).
     const [profile] = await db.select({ displayName: users.displayName, avatarUrl: users.avatarUrl })
       .from(users).where(eq(users.id, socket.data.userId)).limit(1).all();
 
@@ -70,6 +77,8 @@ export function registerCommunityHandlers(io: IO, socket: SK) {
       displayName: profile?.displayName || socket.data.displayName,
       avatarUrl: profile?.avatarUrl ?? socket.data.avatarUrl ?? null,
       text: trimmed,
+      audioFileId: audioFileId || null,
+      audioFileName: audioFileName || null,
       createdAt,
     });
   });

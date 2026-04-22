@@ -214,6 +214,16 @@ export const api = {
   // Community rooms — chat history for a hard-coded room id
   getCommunityHistory: (roomId: string) =>
     request<CommunityMessage[]>('GET', `/communities/${roomId}/messages`),
+  uploadCommunityAudio: async (file: File): Promise<{ fileId: string; fileName: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const res = await fetch(`${BASE_URL}/communities/upload`, { method: 'POST', headers, body: formData });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Upload failed');
+    return json.data;
+  },
 };
 
 export interface CommunityMessage {
@@ -223,6 +233,8 @@ export interface CommunityMessage {
   displayName: string;
   avatarUrl: string | null;
   text: string;
+  audioFileId?: string | null;
+  audioFileName?: string | null;
   createdAt: string;
 }
 

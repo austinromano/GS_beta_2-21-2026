@@ -6,9 +6,12 @@ interface Props {
   fileId: string;
   fileName: string;
   isOwn: boolean;
+  // Defaults to DM audio. Community rooms pass '/communities/audio' to hit
+  // the community stream endpoint instead.
+  audioPath?: string;
 }
 
-export default function DmAudioBubble({ fileId, fileName, isOwn }: Props) {
+export default function DmAudioBubble({ fileId, fileName, isOwn, audioPath = '/dm/audio' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
@@ -26,7 +29,7 @@ export default function DmAudioBubble({ fileId, fileName, isOwn }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    const url = `${API_BASE}/dm/audio/${fileId}`;
+    const url = `${API_BASE}${audioPath}/${fileId}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
       .then((buf) => {

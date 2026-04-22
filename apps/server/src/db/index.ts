@@ -189,7 +189,9 @@ export async function initDatabase() {
       id TEXT PRIMARY KEY,
       room_id TEXT NOT NULL,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      text TEXT NOT NULL,
+      text TEXT NOT NULL DEFAULT '',
+      audio_file_id TEXT,
+      audio_file_name TEXT,
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS bookings (
@@ -217,6 +219,8 @@ export async function initDatabase() {
     `ALTER TABLE direct_messages ADD COLUMN audio_file_name TEXT`,
     `ALTER TABLE bookings ADD COLUMN project_id TEXT`,
     `ALTER TABLE projects ADD COLUMN arrangement_json TEXT`,
+    `ALTER TABLE community_messages ADD COLUMN audio_file_id TEXT`,
+    `ALTER TABLE community_messages ADD COLUMN audio_file_name TEXT`,
   ];
   // ADD COLUMN migrations are idempotent by design — "duplicate column" is expected
   // on every boot after the first. Any other error is worth surfacing.
